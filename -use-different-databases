@@ -1,0 +1,98 @@
+1. Detect the Subdomain in Laravel
+Use a middleware to extract the subdomain from the current request.
+
+Create Middleware:
+--> php artisan make:middleware SubdomainDatabase
+
+Update Middleware:
+Open app/Http/Middleware/SubdomainDatabase.php and add the following code:
+
+--//////*
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Support\Facades\Config;
+
+class SubdomainDatabase
+{
+    public function handle($request, Closure $next)
+    {
+        // Extract the subdomain
+        $host = $request->getHost(); // Example: subdomain.example.com
+        $subdomain = explode('.', $host)[0]; // Get subdomain
+        
+        // Define database configurations for each subdomain
+        $databases = [
+            'subdomain1' => [
+                'host' => '127.0.0.1',
+                'database' => 'database1',
+                'username' => 'user1',
+                'password' => 'password1',
+            ],
+            'subdomain2' => [
+                'host' => '127.0.0.1',
+                'database' => 'database2',
+                'username' => 'user2',
+                'password' => 'password2',
+            ],
+        ];
+
+        // Set database connection dynamically based on subdomain
+        if (array_key_exists($subdomain, $databases)) {
+            Config::set('database.connections.mysql', array_merge(
+                Config::get('database.connections.mysql'),
+                $databases[$subdomain]
+            ));
+        } else {
+            abort(404, 'Subdomain not recognized');
+        }
+
+        return $next($request);
+    }
+}
+--/////////*
+
+2. Add Middleware to the Application
+
+Open app/Http/Kernel.php and add the middleware to the appropriate section.
+
+To Apply Middleware Globally:
+Add it to the $middleware array:
+
+
+-----*///////////
+
+protected $middleware = [
+    // Default middleware
+    \App\Http\Middleware\SubdomainDatabase::class,
+];
+
+-----*/////////
+
+3. Update Laravel's Database Configuration
+Ensure your config/database.php file has a default MySQL connection setup.
+
+Example Configuration (config/database.php):
+
+----*/////////
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'default_database'),
+    'username' => env('DB_USERNAME', 'default_user'),
+    'password' => env('DB_PASSWORD', 'default_password'),
+    'unix_socket' => env('DB_SOCKET', ''),
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix' => '',
+    'strict' => true,
+    'engine' => null,
+],
+----*/////////
+
+
+
+
